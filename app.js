@@ -1,7 +1,7 @@
 (() => {
   const answers = window.GRAMMAR_ANSWERS || {};
   const catalog = window.TASK_CATALOG || [];
-  const state = { week: "week2", uid: localStorage.getItem("grammar3.localUid") || crypto.randomUUID(), firebase: false, responses: {} };
+  const state = { week: "week2part1", uid: localStorage.getItem("grammar3.localUid") || crypto.randomUUID(), firebase: false, responses: {} };
   localStorage.setItem("grammar3.localUid", state.uid);
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -32,12 +32,14 @@
     }
   }
 
-  function weekName(week = state.week) { return week === "week2" ? "Week 2" : "Week 3"; }
-  function getName(week = state.week) { return localStorage.getItem(`grammar3.name.${week}`) || ""; }
+  const lessonKey = week => week.startsWith("week2part") ? "week2" : week;
+  function weekName(week = state.week) { return week === "week2part1" ? "Week 2 · Part 1" : "Week 2 · Part 2"; }
+  function getName(week = state.week) { return localStorage.getItem(`grammar3.name.${lessonKey(week)}`) || ""; }
 
   async function saveName(week, fullName) {
-    localStorage.setItem(`grammar3.name.${week}`, fullName);
-    if (state.firebase) await firebase.database().ref(`students/${state.uid}`).update({ name: fullName, [`weeks/${week}/startedAt`]: firebase.database.ServerValue.TIMESTAMP });
+    const lesson = lessonKey(week);
+    localStorage.setItem(`grammar3.name.${lesson}`, fullName);
+    if (state.firebase) await firebase.database().ref(`students/${state.uid}`).update({ name: fullName, [`weeks/${lesson}/startedAt`]: firebase.database.ServerValue.TIMESTAMP });
     updateNameCards();
   }
 
@@ -165,7 +167,7 @@
   bindControls();
   hydrateControls();
   updateNameCards();
-  const initial = location.hash === "#week3" ? "week3" : "week2";
+  const initial = location.hash === "#week2part2" ? "week2part2" : "week2part1";
   switchWeek(initial);
   initFirebase();
 })();

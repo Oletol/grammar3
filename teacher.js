@@ -2,7 +2,7 @@
   const catalog = window.TASK_CATALOG || [];
   const $ = selector => document.querySelector(selector);
   const $$ = selector => [...document.querySelectorAll(selector)];
-  let activeWeek = "week2";
+  let activeWeek = "week2part1";
   let allResponses = {};
   let students = {};
 

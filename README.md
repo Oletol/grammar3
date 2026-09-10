@@ -1,11 +1,11 @@
 # Practical Grammar 3
 
-Student-facing interactive workbook for Week 2 and Week 3. The site contains all theory and exercises from **Workbook Exercise 10** onward in the supplied `Practical_Grammar_3_Lesson_3.html`.
+Student-facing interactive workbook for **Week 2 · Lesson 2**, divided into Part 1 and Part 2. The site contains all theory and exercises from **Workbook Exercise 10** onward in the supplied source document.
 
 ## What works now
 
-- Separate Week 2 / Week 3 navigation with a reusable week-panel structure.
-- Full-name entry at the start of each week.
+- Separate **Week 2 · Part 1** / **Week 2 · Part 2** navigation with a reusable structure for adding Week 3 later.
+- One full-name entry for Week 2, shared by both lesson parts.
 - Immediate checking for fill-in-the-gap, matching and multiple-choice tasks.
 - Saved open responses for translation, analysis and speaking work; these are not auto-checked.
 - Per-student progress at the bottom of each week.
@@ -21,7 +21,7 @@ Answer keys are absent from `index.html`; objective answers live only in `answer
 - Anonymous and Email/Password Authentication are enabled.
 - `database.rules.json` is deployed. Students can write only their own records; teacher statistics are restricted to `yukaimajo@gmail.com`.
 
-One manual step remains: in Firebase Console → Authentication → Users, create the teacher account for `yukaimajo@gmail.com`. Choose the password privately in Firebase; never commit it to this repository.
+The teacher account for `yukaimajo@gmail.com` has been created in Firebase Authentication.
 
 After GitHub Pages is enabled, verify that `oletol.github.io` appears in Authentication → Settings → Authorized domains.
 
