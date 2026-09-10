@@ -3,18 +3,18 @@
     ".read": false,
     ".write": false,
     "students": {
-      ".read": "auth != null && auth.token.email === 'REPLACE_WITH_TEACHER_EMAIL'",
+      ".read": "auth != null && auth.token.email === 'yukaimajo@gmail.com'",
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'REPLACE_WITH_TEACHER_EMAIL')",
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'yukaimajo@gmail.com')",
         ".write": "auth != null && auth.uid === $uid",
         ".validate": "newData.hasChild('name') && newData.child('name').isString() && newData.child('name').val().length >= 3 && newData.child('name').val().length <= 120"
       }
     },
     "responses": {
       "$week": {
-        ".read": "auth != null && auth.token.email === 'REPLACE_WITH_TEACHER_EMAIL'",
+        ".read": "auth != null && auth.token.email === 'yukaimajo@gmail.com'",
         "$uid": {
-          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'REPLACE_WITH_TEACHER_EMAIL')",
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'yukaimajo@gmail.com')",
           ".write": "auth != null && auth.uid === $uid",
           "$task": {
             ".validate": "newData.hasChildren(['value','answered','updatedAt']) && newData.child('value').isString() && newData.child('value').val().length <= 5000 && newData.child('answered').isBoolean() && newData.child('updatedAt').isNumber()"
