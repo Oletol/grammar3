@@ -77,6 +77,51 @@
     control.parentElement.querySelector(`.feedback[data-for="${CSS.escape(control.dataset.taskId)}"]`)?.remove();
   }
 
+  function enhanceExercise24() {
+    const exercise = $("#e24");
+    if (!exercise) return;
+
+    $$(".item", exercise).forEach((item, itemIndex) => {
+      let blankNumber = 0;
+      [...item.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).forEach(node => {
+        if (!node.textContent.includes(".....")) return;
+        const parts = node.textContent.split(".....");
+        const fragment = document.createDocumentFragment();
+        parts.forEach((part, partIndex) => {
+          fragment.append(document.createTextNode(part));
+          if (partIndex < parts.length - 1) {
+            blankNumber += 1;
+            const marker = document.createElement("span");
+            marker.className = "numbered-blank";
+            marker.textContent = `[${blankNumber}]`;
+            marker.setAttribute("aria-label", `blank ${blankNumber}`);
+            fragment.append(marker);
+          }
+        });
+        node.replaceWith(fragment);
+      });
+
+      const input = $("input[data-task-id]", item);
+      const wrap = $(".open-response-wrap", item);
+      if (!input || !wrap || !blankNumber) return;
+      input.id = `e24-answer-${itemIndex + 1}`;
+      input.placeholder = blankNumber === 1 ? "Type to or —" : "Type one entry for each numbered blank";
+
+      const label = document.createElement("label");
+      label.className = "sequence-answer-label";
+      label.htmlFor = input.id;
+      label.innerHTML = blankNumber === 1
+        ? `Answer for blank <b>[1]</b> <small>Type <i>to</i> or —</small>`
+        : `Answers for blanks <b>[1]–[${blankNumber}]</b> <small>Enter in order, separated by /</small>`;
+      wrap.prepend(label);
+
+      const hint = document.createElement("span");
+      hint.className = "sequence-check-hint";
+      hint.textContent = "Press Enter or click outside the field to check.";
+      wrap.append(hint);
+    });
+  }
+
   function bindControls() {
     $$('[data-task-id]').forEach(control => {
       const taskId = control.dataset.taskId;
@@ -164,6 +209,7 @@
   $("#name-dialog").addEventListener("cancel", event => { if (!getName()) event.preventDefault(); });
 
   localLoad();
+  enhanceExercise24();
   bindControls();
   hydrateControls();
   updateNameCards();
