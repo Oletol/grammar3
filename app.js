@@ -208,6 +208,7 @@
   });
   $("#name-dialog").addEventListener("cancel", event => { if (!getName()) event.preventDefault(); });
 
+  window.prepareFunctionExercises?.();
   localLoad();
   enhanceExercise24();
   bindControls();
