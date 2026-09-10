@@ -10,21 +10,20 @@ Student-facing interactive workbook for Week 2 and Week 3. The site contains all
 - Saved open responses for translation, analysis and speaking work; these are not auto-checked.
 - Per-student progress at the bottom of each week.
 - Protected teacher dashboard with per-task success rate and per-student completion.
-- Local browser persistence before Firebase is configured.
+- Firebase Realtime Database persistence, with local browser fallback if Firebase is unavailable.
 
 Answer keys are absent from `index.html`; objective answers live only in `answers.js`, which the checking code loads internally.
 
-## Firebase information still needed
+## Firebase status
 
-The Firebase Console project URL is not the web-app configuration. No configuration values have been guessed. To turn on shared persistence and teacher statistics:
+- The web app is connected to project `grammar3-6f650`.
+- Realtime Database is in `europe-west1` (Belgium).
+- Anonymous and Email/Password Authentication are enabled.
+- `database.rules.json` is deployed. Students can write only their own records; teacher statistics are restricted to `yukaimajo@gmail.com`.
 
-1. In Firebase Console → Project settings → General, add or select a **Web app** and copy its complete `firebaseConfig` object.
-2. Paste those exact fields into `firebase-config.js`: `apiKey`, `authDomain`, `databaseURL`, `projectId`, `storageBucket`, `messagingSenderId`, and `appId` (plus `measurementId` only if Firebase provides one).
-3. In Build → Authentication → Sign-in method, enable **Anonymous** and **Email/Password**.
-4. In Authentication → Users, create one teacher user and provide the exact teacher email address.
-5. Replace `REPLACE_WITH_TEACHER_EMAIL` in `database.rules.json` with that same email.
-6. Create a **Realtime Database**, choose its region, and deploy `database.rules.json`. Do not leave the database in public test mode.
-7. Add the final GitHub Pages domain (normally `oletol.github.io`) to Authentication → Settings → Authorized domains if it is not already present.
+One manual step remains: in Firebase Console → Authentication → Users, create the teacher account for `yukaimajo@gmail.com`. Choose the password privately in Firebase; never commit it to this repository.
+
+After GitHub Pages is enabled, verify that `oletol.github.io` appears in Authentication → Settings → Authorized domains.
 
 The teacher password belongs only in Firebase Authentication. Never commit it to this repository.
 
