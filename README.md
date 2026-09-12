@@ -13,6 +13,7 @@ Student-facing interactive workbook for **Week 2 · Lesson 2**, divided into Par
 - Per-student progress at the bottom of each week.
 - Protected teacher dashboard with per-task success rate and one combined weekly summary row per student name. Repeated browser profiles are merged, and deleting a student removes every profile stored under that name.
 - Firebase Realtime Database persistence, with local browser fallback if Firebase is unavailable.
+- Existing names and locally saved answers are synchronized automatically as soon as Firebase connects, including when the student started working before the connection finished.
 
 Answer keys are absent from `index.html`; objective answers live only in `answers.js`, which the checking code loads internally.
 
