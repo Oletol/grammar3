@@ -33,7 +33,7 @@
   removeCatalogTasks(task => exercisesWithoutResponses.has(task.exercise) || deletedExercises.has(task.exercise));
 
   const e24Sequences = [
-    "- / -", "- / - / to", "- / to", "to", "to / -", "-", "- / -", "- / -",
+    "to / -", "- / - / to", "- / to", "to", "to / -", "-", "- / -", "- / -",
     "- / to / -", "to", "- / -", "-", "to", "to", "to", "- / to", "to / -"
   ];
   removeCatalogTasks(task => task.exercise === "e24");
