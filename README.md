@@ -4,10 +4,11 @@ Student-facing interactive workbook for **Week 2 · Lesson 2**, divided into Par
 
 ## What works now
 
-- Separate **Week 2 · Part 1** / **Week 2 · Part 2** navigation with a reusable structure for adding Week 3 later.
+- Separate **Week 2 · Part 1**, **Week 2 · Part 2**, and **Week 2 Supplementary exercises** navigation with a reusable structure for adding Week 3 later.
 - One full-name entry for Week 2, shared by both lesson parts.
 - Immediate checking for fill-in-the-gap, matching and multiple-choice tasks.
-- Automatically checked function-of-the-infinitive menus, including a mixed 20-sentence exercise, a shuffled additional bank and the two sides of every minimal pair.
+- Automatically checked function-of-the-infinitive menus, including the core mixed exercise, the shuffled additional bank and the mixed exit test.
+- One combined response field for each translation or sentence-rewriting exercise; Exercise 2.4 uses an inline `to` / dash choice in every sentence gap.
 - Saved open responses for translation, analysis and speaking work; these are not auto-checked.
 - Per-student progress at the bottom of each week.
 - Protected teacher dashboard with per-task success rate and per-student completion.

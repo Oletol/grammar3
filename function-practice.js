@@ -15,8 +15,7 @@
     "adverbial modifier of purpose",
     "adverbial modifier of result",
     "adverbial modifier of attendant circumstances",
-    "parenthesis",
-    "no infinitive"
+    "parenthesis"
   ];
 
   const S = "subject";
@@ -34,7 +33,6 @@
   const RE = "adverbial modifier of result";
   const AC = "adverbial modifier of attendant circumstances";
   const PA = "parenthesis";
-  const NO = "no infinitive";
 
   // Each item contains one entry per independently classified infinitive group.
   // An entry may contain two accepted analyses where the source explicitly allows both.
@@ -64,19 +62,6 @@
     [[S], [PR]], [[PU]], [[S], [PR]], [[PU], [CM]], [[AT]], [[CM]],
     [[PR]], [[O]], [[CO]], [[RE]], [[CA]], [[PU]], [[RE]], [[PA], [AT]],
     [[AC]], [[CA], [AP]], [[PU]], [[AT]], [[PU], [CM], [CA]], [[RS]], [[RS]], [[RS]]
-  ];
-
-  const E58 = [
-    { a: [[PU]], b: [[NO]] },
-    { a: [[AT]], b: [[PU]] },
-    { a: [[AT], [PR]], b: [[AT], [PR]] },
-    { a: [[RE]], b: [[NO]] },
-    { a: [[AT]], b: [[AT]] },
-    { a: [[PA]], b: [[S]] },
-    { a: [[AT]], b: [[RE]] },
-    { a: [[PU]], b: [[AC]] },
-    { a: [[PR]], b: [[AP]] },
-    { a: [[RS]], b: [[NO]] }
   ];
 
   const E59 = [
@@ -127,14 +112,6 @@
   registerGroups("e41auto", "e41", "Exercise 4.1. State the function of the infinitives", E41, "Item");
   registerGroups("e42auto", "e42", "Exercise 4.2. Function of the infinitives", E42, "Item");
   registerGroups("e59auto", "e59", "Exercise 5.9. Mixed identification: the exit test", E59, "Item");
-
-  E58.forEach((pair, pairIndex) => ["a", "b"].forEach(side => {
-    pair[side].forEach((accepted, functionIndex) => {
-      const id = `${WEEK}.e58auto.pair${pairIndex + 1}${side}.function${functionIndex + 1}`;
-      const suffix = pair[side].length > 1 ? ` · infinitive ${functionIndex + 1}` : "";
-      addTask(id, "e58", "Exercise 5.8. Minimal pairs", `Pair ${pairIndex + 1}${side}${suffix}`, accepted);
-    });
-  }));
 
   function makeSelect(taskId, labelText, total) {
     const label = document.createElement("label");
@@ -246,38 +223,6 @@
     Object.keys(BANK).forEach(source => document.getElementById(source)?.remove());
   }
 
-  function enhanceMinimalPairs() {
-    const section = document.getElementById("e58");
-    if (!section) return;
-    section.querySelector(".rubric").textContent = "Choose the function separately for a) and b). Then use the text field to explain the feature that decides the difference.";
-    section.querySelectorAll("ol.items > li.item").forEach((item, pairIndex) => {
-      const written = item.querySelector(".open-response-wrap");
-      const textNode = [...item.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.includes("a)"));
-      if (!textNode) return;
-      const match = textNode.textContent.match(/^a\)\s*(.*?)\s+b\)\s*(.*)$/);
-      if (!match) return;
-      textNode.remove();
-      const pairBox = document.createElement("div");
-      pairBox.className = "minimal-pair-grid";
-      ["a", "b"].forEach((side, sideIndex) => {
-        const row = document.createElement("div");
-        row.className = "minimal-pair-row";
-        const sentence = document.createElement("p");
-        sentence.innerHTML = `<b>${side})</b> ${match[sideIndex + 1]}`;
-        const choices = document.createElement("div");
-        choices.className = "function-choice-row";
-        E58[pairIndex][side].forEach((_, functionIndex) => {
-          const id = `${WEEK}.e58auto.pair${pairIndex + 1}${side}.function${functionIndex + 1}`;
-          choices.append(makeSelect(id, `Infinitive ${functionIndex + 1}`, E58[pairIndex][side].length));
-        });
-        row.append(sentence, choices);
-        pairBox.append(row);
-      });
-      item.insertBefore(pairBox, written || null);
-      written?.querySelector("textarea")?.setAttribute("placeholder", "What exactly changes the function in this pair?");
-    });
-  }
-
   window.prepareFunctionExercises = () => {
     buildMixedPractice();
     enhanceExisting("e41", "e41auto", E41);
@@ -286,7 +231,6 @@
     enhanceExisting("e42", "e42auto", E42, true);
     const e42Rubric = document.querySelector("#e42 .rubric");
     if (e42Rubric) e42Rubric.textContent = "Choose each infinitive's function from the menu; use the text field to comment on its form and explain your choice.";
-    enhanceMinimalPairs();
     enhanceExisting("e59", "e59auto", E59);
     const e59Rubric = document.querySelector("#e59 .rubric");
     if (e59Rubric) e59Rubric.textContent = "Choose the function of each infinitive. The result is checked automatically.";

@@ -32,8 +32,12 @@
     }
   }
 
-  const lessonKey = week => week.startsWith("week2part") ? "week2" : week;
-  function weekName(week = state.week) { return week === "week2part1" ? "Week 2 · Part 1" : "Week 2 · Part 2"; }
+  const lessonKey = week => week.startsWith("week2") ? "week2" : week;
+  function weekName(week = state.week) {
+    if (week === "week2part1") return "Week 2 · Part 1";
+    if (week === "week2part2") return "Week 2 · Part 2";
+    return "Week 2 · Supplementary exercises";
+  }
   function getName(week = state.week) { return localStorage.getItem(`grammar3.name.${lessonKey(week)}`) || ""; }
 
   async function saveName(week, fullName) {
@@ -209,12 +213,13 @@
   $("#name-dialog").addEventListener("cancel", event => { if (!getName()) event.preventDefault(); });
 
   window.prepareFunctionExercises?.();
+  window.prepareDocumentLayout?.();
   localLoad();
   enhanceExercise24();
   bindControls();
   hydrateControls();
   updateNameCards();
-  const initial = location.hash === "#week2part2" ? "week2part2" : "week2part1";
+  const initial = ["#week2part2", "#week2supp"].includes(location.hash) ? location.hash.slice(1) : "week2part1";
   switchWeek(initial);
   initFirebase();
 })();
