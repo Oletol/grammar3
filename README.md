@@ -11,7 +11,7 @@ Student-facing interactive workbook for **Week 2 · Lesson 2**, divided into Par
 - One combined response field for each translation or sentence-rewriting exercise; Exercise 2.4 uses an inline `to` / dash choice in every sentence gap.
 - Saved open responses for translation, analysis and speaking work; these are not auto-checked.
 - Per-student progress at the bottom of each week.
-- Protected teacher dashboard with per-task success rate and per-student completion.
+- Protected teacher dashboard with per-task success rate, per-student weekly statistics, and the option to delete a student's stored statistics.
 - Firebase Realtime Database persistence, with local browser fallback if Firebase is unavailable.
 
 Answer keys are absent from `index.html`; objective answers live only in `answers.js`, which the checking code loads internally.
@@ -21,7 +21,7 @@ Answer keys are absent from `index.html`; objective answers live only in `answer
 - The web app is connected to project `grammar3-6f650`.
 - Realtime Database is in `europe-west1` (Belgium).
 - Anonymous and Email/Password Authentication are enabled.
-- `database.rules.json` is deployed. Students can write only their own records; teacher statistics are restricted to `yukaimajo@gmail.com`.
+- `database.rules.json` allows students to write only their own records. Teacher statistics and teacher-initiated deletion are restricted to `yukaimajo@gmail.com`.
 
 The teacher account for `yukaimajo@gmail.com` has been created in Firebase Authentication.
 
