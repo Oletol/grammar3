@@ -1,7 +1,7 @@
 (() => {
   const answers = window.GRAMMAR_ANSWERS || {};
   const catalog = window.TASK_CATALOG || [];
-  const state = { week: "week2part1", uid: localStorage.getItem("grammar3.localUid") || crypto.randomUUID(), firebase: false, responses: {} };
+  const state = { week: "week2part1", uid: localStorage.getItem("grammar3.localUid") || crypto.randomUUID(), firebase: false, profileSynced: false, responses: {} };
   localStorage.setItem("grammar3.localUid", state.uid);
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -21,13 +21,16 @@
       firebase.initializeApp(config);
       await firebase.auth().signInAnonymously();
       state.uid = firebase.auth().currentUser.uid;
+      localStorage.setItem("grammar3.localUid", state.uid);
       state.firebase = true;
       $("#sync-status").textContent = "Firebase sync on";
-      const snapshot = await firebase.database().ref(`responses/${state.week}/${state.uid}`).once("value");
-      state.responses = { ...state.responses, ...(snapshot.val() || {}) };
+      await syncStudentProfile(state.week);
+      await syncWeekResponses(state.week);
       hydrateControls();
     } catch (error) {
       console.warn("Firebase unavailable; continuing locally.", error);
+      state.firebase = false;
+      state.profileSynced = false;
       $("#sync-status").textContent = "Local mode · Firebase unavailable";
     }
   }
@@ -40,10 +43,50 @@
   }
   function getName(week = state.week) { return localStorage.getItem(`grammar3.name.${lessonKey(week)}`) || ""; }
 
+  async function syncStudentProfile(week = state.week) {
+    const fullName = getName(week);
+    if (!state.firebase || !fullName) return;
+    const lesson = lessonKey(week);
+    const studentRef = firebase.database().ref(`students/${state.uid}`);
+    const snapshot = await studentRef.once("value");
+    const updates = { name: fullName };
+    if (!snapshot.child(`weeks/${lesson}/startedAt`).exists()) updates[`weeks/${lesson}/startedAt`] = firebase.database.ServerValue.TIMESTAMP;
+    await studentRef.update(updates);
+    state.profileSynced = true;
+  }
+
+  async function syncWeekResponses(week = state.week) {
+    if (!state.firebase) return;
+    const responseRef = firebase.database().ref(`responses/${week}/${state.uid}`);
+    const snapshot = await responseRef.once("value");
+    const remote = snapshot.val() || {};
+    const updates = {};
+    catalog.filter(task => task.week === week).forEach(task => {
+      const key = task.id.replaceAll(".", "__");
+      const localRecord = state.responses[key];
+      const remoteRecord = remote[key];
+      if (localRecord && (!remoteRecord || Number(localRecord.updatedAt) > Number(remoteRecord.updatedAt))) {
+        updates[key] = localRecord;
+      } else if (remoteRecord) {
+        state.responses[key] = remoteRecord;
+      }
+    });
+    if (Object.keys(updates).length) await responseRef.update(updates);
+    localStorage.setItem(storageKey(), JSON.stringify(state.responses));
+  }
+
   async function saveName(week, fullName) {
     const lesson = lessonKey(week);
     localStorage.setItem(`grammar3.name.${lesson}`, fullName);
-    if (state.firebase) await firebase.database().ref(`students/${state.uid}`).update({ name: fullName, [`weeks/${lesson}/startedAt`]: firebase.database.ServerValue.TIMESTAMP });
+    if (state.firebase) {
+      try {
+        await firebase.database().ref(`students/${state.uid}`).update({ name: fullName, [`weeks/${lesson}/startedAt`]: firebase.database.ServerValue.TIMESTAMP });
+        state.profileSynced = true;
+      } catch (error) {
+        console.warn("Name saved locally, but Firebase sync failed.", error);
+        $("#sync-status").textContent = "Saved locally · Firebase sync failed";
+      }
+    }
     updateNameCards();
   }
 
@@ -54,7 +97,14 @@
     state.responses[taskId.replaceAll(".", "__")] = record;
     localStorage.setItem(storageKey(), JSON.stringify(state.responses));
     if (state.firebase) {
-      await firebase.database().ref(`responses/${task.week}/${state.uid}/${taskId.replaceAll(".", "__")}`).set({ ...record, updatedAt: firebase.database.ServerValue.TIMESTAMP });
+      try {
+        if (!state.profileSynced) await syncStudentProfile(task.week);
+        await firebase.database().ref(`responses/${task.week}/${state.uid}/${taskId.replaceAll(".", "__")}`).set({ ...record, updatedAt: firebase.database.ServerValue.TIMESTAMP });
+        $("#sync-status").textContent = "Firebase sync on";
+      } catch (error) {
+        console.warn("Response saved locally, but Firebase sync failed.", error);
+        $("#sync-status").textContent = "Saved locally · Firebase sync failed";
+      }
     }
     updateProgress();
   }
@@ -180,9 +230,14 @@
     $(".mobile-nav-toggle").setAttribute("aria-expanded", "false");
     history.replaceState(null, "", `#${week}`);
     if (state.firebase) {
-      const snapshot = await firebase.database().ref(`responses/${week}/${state.uid}`).once("value");
-      state.responses = { ...state.responses, ...(snapshot.val() || {}) };
-      hydrateControls();
+      try {
+        await syncStudentProfile(week);
+        await syncWeekResponses(week);
+        hydrateControls();
+      } catch (error) {
+        console.warn("Firebase sync failed while changing lesson sections.", error);
+        $("#sync-status").textContent = "Saved locally · Firebase sync failed";
+      }
     }
     requireName();
     scrollTo({ top: 0, behavior: "smooth" });
