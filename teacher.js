@@ -8,6 +8,7 @@
   let students = {};
   let studentsRef = null;
   let responseRefs = [];
+  let currentStudentGroups = [];
 
   const lessonKey = week => {
     const match = String(week).match(/^week(\d+)/i);
@@ -48,68 +49,79 @@
     Object.values(allResponses || {}).forEach(weekResponses => {
       Object.keys(weekResponses || {}).forEach(uid => uids.add(uid));
     });
-    return [...uids].sort((a, b) => {
-      const aName = students?.[a]?.name || "";
-      const bName = students?.[b]?.name || "";
-      return aName.localeCompare(bName, undefined, { sensitivity: "base" });
+    return [...uids];
+  }
+
+  function normalizedName(name) {
+    return String(name || "").normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+  }
+
+  function groupedStudents() {
+    const groups = new Map();
+    allStudentUids().forEach(uid => {
+      const savedName = String(students?.[uid]?.name || "").trim().replace(/\s+/g, " ");
+      const key = savedName ? `name:${normalizedName(savedName)}` : "unnamed";
+      if (!groups.has(key)) groups.set(key, { key, name: savedName || "Unidentified attempts", uids: [] });
+      groups.get(key).uids.push(uid);
+    });
+    return [...groups.values()].sort((a, b) => {
+      if (a.key === "unnamed") return 1;
+      if (b.key === "unnamed") return -1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
     });
   }
 
-  function groupSummary(uid, group) {
-    const records = group.tasks.map(task => recordFor(uid, task)).filter(Boolean);
+  function combinedRecordFor(studentGroup, task) {
+    return studentGroup.uids
+      .map(uid => recordFor(uid, task))
+      .filter(Boolean)
+      .sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0))[0];
+  }
+
+  function groupSummary(studentGroup, group) {
+    const records = group.tasks.map(task => combinedRecordFor(studentGroup, task)).filter(Boolean);
     const autoTasks = group.tasks.filter(task => task.auto);
     const answered = records.filter(record => record.answered).length;
-    const correct = autoTasks.filter(task => recordFor(uid, task)?.correct === true).length;
+    const correct = autoTasks.filter(task => combinedRecordFor(studentGroup, task)?.correct === true).length;
     const updated = Math.max(0, ...records.map(record => Number(record.updatedAt) || 0));
-    const started = Boolean(students?.[uid]?.weeks?.[group.key]?.startedAt || records.length);
+    const started = Boolean(records.length || studentGroup.uids.some(uid => students?.[uid]?.weeks?.[group.key]?.startedAt));
     return { answered, correct, updated, started, total: group.tasks.length, autoTotal: autoTasks.length };
   }
 
-  function renderWeeklyOverview() {
+  function renderWeeklyOverview(studentGroups) {
     $("#student-week-head").innerHTML = `<th>Student</th>${weeklyGroups.map(group => `<th>${escapeHtml(group.label)}</th>`).join("")}<th>Actions</th>`;
-    const uids = allStudentUids();
-    $("#student-week-stats").innerHTML = uids.map(uid => {
-      const name = students?.[uid]?.name || "Unnamed student";
+    $("#student-week-stats").innerHTML = studentGroups.map((studentGroup, groupIndex) => {
       const cells = weeklyGroups.map(group => {
-        const summary = groupSummary(uid, group);
+        const summary = groupSummary(studentGroup, group);
         if (!summary.started) return '<td class="weekly-cell"><span>Not started</span></td>';
         const completion = summary.total ? Math.round(summary.answered / summary.total * 100) : 0;
-        return `<td class="weekly-cell"><strong>${summary.answered}/${summary.total} · ${completion}%</strong><span>${summary.correct}/${summary.autoTotal} objective answers correct</span></td>`;
+        const lastActivity = summary.updated ? new Date(summary.updated).toLocaleString() : "—";
+        return `<td class="weekly-cell"><strong>${summary.answered}/${summary.total} · ${completion}%</strong><span>${summary.correct}/${summary.autoTotal} objective answers correct</span><span>Last activity: ${escapeHtml(lastActivity)}</span></td>`;
       }).join("");
-      return `<tr><td class="student-name-cell"><b>${escapeHtml(name)}</b></td>${cells}<td><button type="button" class="delete-student" data-delete-student="${escapeHtml(uid)}" data-student-name="${escapeHtml(name)}">Delete student</button></td></tr>`;
+      return `<tr><td class="student-name-cell"><b>${escapeHtml(studentGroup.name)}</b></td>${cells}<td><button type="button" class="delete-student" data-delete-group="${groupIndex}">Delete student</button></td></tr>`;
     }).join("") || `<tr><td colspan="${weeklyGroups.length + 2}">No students yet.</td></tr>`;
   }
 
   function render() {
     const tasks = catalog.filter(task => task.week === activeWeek);
-    const activeResponses = allResponses?.[activeWeek] || {};
     const lesson = lessonKey(activeWeek);
-    const studentUids = allStudentUids().filter(uid => students?.[uid]?.weeks?.[lesson]?.startedAt || activeResponses?.[uid]);
-    const studentEntries = studentUids.map(uid => [uid, activeResponses?.[uid] || {}]);
-    const totalAnswered = studentEntries.reduce((sum, [, records]) => sum + Object.values(records).filter(row => row.answered).length, 0);
+    currentStudentGroups = groupedStudents();
+    const activeGroups = currentStudentGroups.filter(studentGroup => studentGroup.uids.some(uid => students?.[uid]?.weeks?.[lesson]?.startedAt || allResponses?.[activeWeek]?.[uid]));
+    const totalAnswered = activeGroups.reduce((sum, studentGroup) => sum + tasks.filter(task => combinedRecordFor(studentGroup, task)?.answered).length, 0);
     const autoTasks = tasks.filter(task => task.auto);
-    const correctCount = studentEntries.reduce((sum, [, records]) => sum + Object.values(records).filter(row => row.correct === true).length, 0);
-    const possible = studentEntries.length * tasks.length;
+    const correctCount = activeGroups.reduce((sum, studentGroup) => sum + autoTasks.filter(task => combinedRecordFor(studentGroup, task)?.correct === true).length, 0);
+    const possible = activeGroups.length * tasks.length;
 
-    $("#metrics").innerHTML = `<div class="metric"><strong>${studentEntries.length}</strong><span>students started</span></div><div class="metric"><strong>${possible ? Math.round(totalAnswered / possible * 100) : 0}%</strong><span>section completion</span></div><div class="metric"><strong>${studentEntries.length * autoTasks.length ? Math.round(correctCount / (studentEntries.length * autoTasks.length) * 100) : 0}%</strong><span>objective answers correct</span></div>`;
+    $("#metrics").innerHTML = `<div class="metric"><strong>${activeGroups.length}</strong><span>students started</span></div><div class="metric"><strong>${possible ? Math.round(totalAnswered / possible * 100) : 0}%</strong><span>section completion</span></div><div class="metric"><strong>${activeGroups.length * autoTasks.length ? Math.round(correctCount / (activeGroups.length * autoTasks.length) * 100) : 0}%</strong><span>objective answers correct</span></div>`;
 
     $("#task-stats").innerHTML = tasks.filter(task => task.auto).map(task => {
-      const key = task.id.replaceAll(".", "__");
-      const rows = studentEntries.map(([, records]) => records?.[key]).filter(row => row?.answered);
+      const rows = activeGroups.map(studentGroup => combinedRecordFor(studentGroup, task)).filter(row => row?.answered);
       const correct = rows.filter(row => row.correct === true).length;
       const percent = rows.length ? Math.round(correct / rows.length * 100) : 0;
       return `<tr><td><b>${escapeHtml(task.title)}</b><br>${escapeHtml(task.label)}</td><td>${rows.length}</td><td>${correct}</td><td><div class="rate"><div class="rate-bar"><span style="width:${percent}%"></span></div><b>${percent}%</b></div></td></tr>`;
     }).join("") || '<tr><td colspan="4">No objective tasks found.</td></tr>';
 
-    $("#student-stats").innerHTML = studentEntries.map(([uid, records]) => {
-      const answered = tasks.filter(task => records?.[task.id.replaceAll(".", "__")]?.answered).length;
-      const correct = autoTasks.filter(task => records?.[task.id.replaceAll(".", "__")]?.correct === true).length;
-      const updated = Math.max(0, ...Object.values(records).map(row => Number(row.updatedAt) || 0));
-      const name = students?.[uid]?.name || "Unnamed student";
-      return `<tr><td><b>${escapeHtml(name)}</b></td><td>${answered}/${tasks.length} · ${tasks.length ? Math.round(answered / tasks.length * 100) : 0}%</td><td>${correct}/${autoTasks.length}</td><td>${updated ? new Date(updated).toLocaleString() : "—"}</td></tr>`;
-    }).join("") || '<tr><td colspan="4">No student responses yet.</td></tr>';
-
-    renderWeeklyOverview();
+    renderWeeklyOverview(currentStudentGroups);
   }
 
   function setDashboardMessage(message, isError = false) {
@@ -118,21 +130,35 @@
     node.classList.toggle("is-error", isError);
   }
 
-  async function deleteStudent(uid, name, button) {
-    const confirmed = window.confirm(`Delete ${name} and all saved responses? This cannot be undone.`);
+  async function deleteStudentGroup(studentGroup, button) {
+    const profileNote = studentGroup.uids.length > 1 ? ` from ${studentGroup.uids.length} combined browser profiles` : "";
+    const confirmed = window.confirm(`Delete ${studentGroup.name}${profileNote} and all saved responses? This cannot be undone.`);
     if (!confirmed) return;
     button.disabled = true;
-    setDashboardMessage(`Deleting ${name}…`);
-    const updates = { [`students/${uid}`]: null };
-    responseWeeks.forEach(week => { updates[`responses/${week}/${uid}`] = null; });
+    setDashboardMessage(`Deleting ${studentGroup.name}…`);
+    const updates = {};
+    studentGroup.uids.forEach(uid => {
+      updates[`students/${uid}`] = null;
+      responseWeeks.forEach(week => { updates[`responses/${week}/${uid}`] = null; });
+    });
     try {
       await firebase.database().ref().update(updates);
-      setDashboardMessage(`${name} and all saved responses were deleted.`);
+      setDashboardMessage(`${studentGroup.name} and all saved responses were deleted.`);
     } catch (error) {
-      console.error("Student deletion failed.", error);
+      console.error("Firebase delete failed", error);
+      setDashboardMessage("Could not delete this student. Check the Firebase database rules.", true);
       button.disabled = false;
-      setDashboardMessage("Deletion failed. Deploy the updated database.rules.json file and try again.", true);
     }
+  }
+
+  function subscribe() {
+    studentsRef = firebase.database().ref("students");
+    studentsRef.on("value", snapshot => { students = snapshot.val() || {}; render(); });
+    responseRefs = responseWeeks.map(week => {
+      const ref = firebase.database().ref(`responses/${week}`);
+      ref.on("value", snapshot => { allResponses[week] = snapshot.val() || {}; render(); });
+      return ref;
+    });
   }
 
   function unsubscribe() {
@@ -140,20 +166,6 @@
     responseRefs.forEach(ref => ref.off());
     studentsRef = null;
     responseRefs = [];
-  }
-
-  function subscribe() {
-    unsubscribe();
-    studentsRef = firebase.database().ref("students");
-    studentsRef.on("value", snapshot => { students = snapshot.val() || {}; render(); });
-    responseRefs = responseWeeks.map(week => {
-      const ref = firebase.database().ref(`responses/${week}`);
-      ref.on("value", snapshot => {
-        allResponses[week] = snapshot.val() || {};
-        render();
-      });
-      return ref;
-    });
   }
 
   if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey || !window.firebase) {
@@ -188,9 +200,10 @@
   });
 
   $("#student-week-stats").addEventListener("click", event => {
-    const button = event.target.closest("[data-delete-student]");
+    const button = event.target.closest("[data-delete-group]");
     if (!button) return;
-    deleteStudent(button.dataset.deleteStudent, button.dataset.studentName, button);
+    const studentGroup = currentStudentGroups[Number(button.dataset.deleteGroup)];
+    if (studentGroup) deleteStudentGroup(studentGroup, button);
   });
 
   $$(".dashboard-tabs button").forEach(button => button.addEventListener("click", () => {
